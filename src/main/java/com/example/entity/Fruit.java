@@ -7,6 +7,8 @@ import lombok.Setter;
 import javax.persistence.Cacheable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 
 @Entity
 @Cacheable
@@ -15,6 +17,9 @@ import javax.persistence.Entity;
 public class Fruit extends PanacheEntity {
 
     @Column(length = 40, unique = true)
-    public String name;
+    private String name;
 
+    @ManyToOne
+    @JoinColumn(name = "basket_id")
+    private Basket basket;
 }

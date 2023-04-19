@@ -1,8 +1,8 @@
 package com.example.resource;
 
+import com.example.entity.Basket;
 import com.example.entity.Fruit;
 import io.quarkus.hibernate.reactive.panache.Panache;
-import io.quarkus.panache.common.Sort;
 import io.smallrye.mutiny.Uni;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -21,44 +21,48 @@ import java.util.List;
 
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.NO_CONTENT;
+import static org.jboss.resteasy.reactive.RestResponse.StatusCode.NO_CONTENT;
 
-@Path("fruits")
+@Path("baskets")
 @ApplicationScoped
 @Produces("application/json")
 @Consumes("application/json")
-public class FruitResource {
+public class BasketResource {
     @GET
-    public Uni<List<Fruit>> get() {
-        return Fruit.listAll(Sort.by("name"));
+    public Uni<List<Basket>> get() {
+        return Basket.listAll();
     }
 
     @GET
     @Path("{id}")
-    public Uni<Fruit> getById(@PathParam("id") Long id) {
-        return Fruit.findById(id);
+    public Uni<Basket> getById(@PathParam("id") Long id) {
+        return Basket.findById(id);
     }
 
     @POST
-    public Uni<Response> create(@RequestBody Fruit fruit) {
-        if (fruit == null || fruit.id != null) {
-            throw new WebApplicationException("Id was invalidly set on request.", 422);
+    public Uni<Response> create(@RequestBody List<Fruit> fruits) {
+        for (Fruit fruit : fruits) {
+            if (fruit == null || fruit.id != null) {
+                throw new WebApplicationException("Id was invalidly set on request.", 422);
+            }
+            Panache.withTransaction(fruit::persist);
         }
-
-        return Panache.withTransaction(fruit::persist)
-                .replaceWith(Response.ok(fruit).status(CREATED)::build);
+        Basket basket = new Basket();
+        basket.setFruits(fruits);
+        return Panache.withTransaction(basket::persist)
+                .replaceWith(Response.ok(basket).status(CREATED)::build);
     }
 
     @PUT
     @Path("{id}")
-    public Uni<Response> update(@PathParam("id") Long id, @RequestBody Fruit fruit) {
-        if (fruit == null || fruit.getName() == null) {
+    public Uni<Response> update(@PathParam("id") Long id, @RequestBody Basket basket) {
+        if (basket == null) {
             throw new WebApplicationException("Fruit name was not set on request.", 422);
         }
 
         return Panache
-                .withTransaction(() -> Fruit.<Fruit>findById(id)
-                        .onItem().ifNotNull().invoke(entity -> entity.setName(fruit.getName()))
+                .withTransaction(() -> Basket.<Basket>findById(id)
+                        .onItem().ifNotNull().invoke(entity -> entity.setFruits(basket.getFruits()))
                 )
                 .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
                 .onItem().ifNull().continueWith(Response.ok().status(NOT_FOUND)::build);
@@ -67,7 +71,7 @@ public class FruitResource {
     @DELETE
     @Path("{id}")
     public Uni<Response> delete(@PathParam("id") Long id) {
-        return Panache.withTransaction(() -> Fruit.deleteById(id))
+        return Panache.withTransaction(() -> Basket.deleteById(id))
                 .map(deleted -> deleted
                         ? Response.ok().status(NO_CONTENT).build()
                         : Response.ok().status(NOT_FOUND).build());
