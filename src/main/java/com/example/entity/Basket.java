@@ -1,12 +1,9 @@
 package com.example.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import io.quarkus.hibernate.reactive.panache.PanacheEntity;
 import io.quarkus.hibernate.reactive.panache.PanacheEntityBase;
 import lombok.Getter;
 import lombok.Setter;
 
-import javax.persistence.Cacheable;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;

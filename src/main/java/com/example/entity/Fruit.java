@@ -20,7 +20,7 @@ public class Fruit extends PanacheEntityBase {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 40, unique = true)
+    @Column(length = 40)
     private String name;
 
     @ManyToOne

@@ -1,6 +1,8 @@
 package com.example.resource;
 
+import com.example.DTO.FruitDTO;
 import com.example.entity.Fruit;
+import com.example.mapper.FruitMapper;
 import com.example.repository.FruitRepository;
 import io.smallrye.mutiny.Uni;
 
@@ -31,25 +33,31 @@ import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 public class FruitResource {
     @Inject
     FruitRepository fruitRepository;
+    @Inject
+    FruitMapper fruitMapper;
 
     @GET
-    public Uni<List<Fruit>> get() {
-        return fruitRepository.findAll().list();
+    public Uni<List<FruitDTO>> get() {
+        return fruitRepository.findAll().list()
+                .map(fruits -> fruits.stream()
+                        .map(fruitMapper::toDTO)
+                        .toList());
     }
 
     @GET
     @Path("{id}")
-    public Uni<Fruit> getById(@PathParam("id") Long id) {
-        return fruitRepository.findById(id);
+    public Uni<FruitDTO> getById(@PathParam("id") Long id) {
+        return fruitRepository.findById(id)
+                .map(fruitMapper::toDTO);
     }
 
     @POST
     @Transactional
-    public Uni<Response> create(Fruit fruit) {
-        if (fruit == null || fruit.getId() != null) {
-            throw new WebApplicationException("Id was invalidly set on request.", UNPROCESSABLE_ENTITY_CODE);
+    public Uni<Response> create(FruitDTO fruitDTO) {
+        if (fruitDTO == null || fruitDTO.getId() != null) {
+            throw new WebApplicationException("Invalid data in request.", UNPROCESSABLE_ENTITY_CODE);
         }
-
+        Fruit fruit = fruitMapper.toEntity(fruitDTO);
         return fruitRepository.persist(fruit)
                 .replaceWith(Response.ok(fruit).status(CREATED)::build);
     }
@@ -57,11 +65,11 @@ public class FruitResource {
     @PUT
     @Path("{id}")
     @Transactional
-    public Uni<Response> update(@PathParam("id") Long id, Fruit fruit) {
-        if (fruit == null || fruit.getName() == null) {
+    public Uni<Response> update(@PathParam("id") Long id, FruitDTO fruitDTO) {
+        if (fruitDTO == null || fruitDTO.getName() == null) {
             throw new WebApplicationException("Fruit name was not set on request.", UNPROCESSABLE_ENTITY_CODE);
         }
-
+        Fruit fruit = fruitMapper.toEntity(fruitDTO);
         return fruitRepository.findById(id)
                 .onItem().ifNotNull().invoke(entity -> entity.setName(fruit.getName()))
                 .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())

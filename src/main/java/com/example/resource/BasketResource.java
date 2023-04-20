@@ -1,8 +1,10 @@
 package com.example.resource;
 
+import com.example.DTO.BasketDTO;
+import com.example.DTO.FruitDTO;
 import com.example.entity.Basket;
+import com.example.mapper.BasketMapper;
 import com.example.repository.BasketRepository;
-import com.example.repository.FruitRepository;
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.smallrye.mutiny.Uni;
 
@@ -34,33 +36,59 @@ public class BasketResource {
     @Inject
     BasketRepository basketRepository;
     @Inject
-    FruitRepository fruitRepository;
+    BasketMapper basketMapper;
+
 
     @GET
-    public Uni<List<Basket>> get() {
-        return basketRepository.findAll().list();
+    public Uni<List<BasketDTO>> get() {
+        return basketRepository.findAll().list()
+                .map(baskets -> baskets.stream()
+                        .map(basketMapper::toDTO)
+                        .toList());
     }
 
     @GET
     @Path("{id}")
-    public Uni<Basket> getById(@PathParam("id") Long id) {
-        return basketRepository.findById(id);
+    public Uni<BasketDTO> getById(@PathParam("id") Long id) {
+        return basketRepository.findById(id)
+                .map(basketMapper::toDTO);
+    }
+
+    @GET
+    @Path("/by_fruit_name/{fruit_name}")
+    public Uni<List<BasketDTO>> getAllByFruitName(@PathParam("fruit_name") String fruitName){
+        return basketRepository.findAll().list()
+                .map(baskets -> baskets.stream()
+                        .map(basketMapper::toDTO)
+                        .filter(
+                                basketDTO -> basketDTO.getFruitDTOS().stream()
+                                        .map(FruitDTO::getName)
+                                        .filter(name->name.equals(fruitName))
+                                        .toList()
+                                        .size() != 0
+                                )
+                                .toList()
+                        );
     }
 
     @POST
     @Transactional
-    public Uni<Response> create(Basket basket) {
+    public Uni<Response> create(BasketDTO basketDTO) {
+        if (basketDTO.getId() != null) {
+            throw new WebApplicationException("Invalid data in request.", UNPROCESSABLE_ENTITY_CODE);
+        }
+        Basket basket = basketMapper.toEntity(basketDTO);
         return basketRepository.persist(basket)
                 .replaceWith(Response.ok(basket).status(CREATED)::build);
     }
 
     @PUT
     @Path("{id}")
-    public Uni<Response> update(@PathParam("id") Long id, Basket basket) {
-        if (basket == null) {
+    public Uni<Response> update(@PathParam("id") Long id, BasketDTO basketDTO) {
+        if (basketDTO == null) {
             throw new WebApplicationException("Basket was not set on request.", UNPROCESSABLE_ENTITY_CODE);
         }
-
+        Basket basket = basketMapper.toEntity(basketDTO);
         return basketRepository.findById(id)
                 .onItem().ifNotNull().invoke(entity -> entity.setFruits(basket.getFruits()))
                 .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())

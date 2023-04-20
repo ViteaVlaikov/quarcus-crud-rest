@@ -1,9 +1,7 @@
 package com.example.mapper;
 
 import com.example.DTO.BasketDTO;
-import com.example.DTO.FruitDTO;
 import com.example.entity.Basket;
-import com.example.entity.Fruit;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -19,10 +17,11 @@ public class BasketMapper {
         basketDTO.setFruitDTOS(basket.getFruits().stream().map(fruitMapper::toDTO).toList());
         return basketDTO;
     }
-    public Basket toEntity(BasketDTO fruitDTO){
-        Fruit fruit = new Fruit();
-        fruit.setId(fruitDTO.getId());
-        fruit.setName(fruitDTO.getName());
-        return fruit;
+    public Basket toEntity(BasketDTO basketDTO){
+        Basket basket = new Basket();
+        basket.setId(basket.getId());
+        basket.setName(basket.getName());
+        basket.setFruits(basketDTO.getFruitDTOS().stream().map(fruitMapper::toEntity).toList());
+        return basket;
     }
 }
