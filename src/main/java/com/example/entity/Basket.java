@@ -15,7 +15,9 @@ import java.util.List;
 @Getter
 @Setter
 public class Basket extends PanacheEntity {
+    private String name;
     @OneToMany(mappedBy = "basket", fetch = FetchType.EAGER)
     private List<Fruit> fruits;
+
 
 }

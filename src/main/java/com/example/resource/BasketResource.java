@@ -2,11 +2,15 @@ package com.example.resource;
 
 import com.example.entity.Basket;
 import com.example.entity.Fruit;
+import com.example.repository.BasketRepository;
+import com.example.repository.FruitRepository;
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.smallrye.mutiny.Uni;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+import javax.transaction.Transactional;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -19,6 +23,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import java.util.List;
 
+import static com.example.codes.ErrorCode.UNPROCESSABLE_ENTITY_CODE;
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.jboss.resteasy.reactive.RestResponse.StatusCode.NO_CONTENT;
@@ -28,28 +33,29 @@ import static org.jboss.resteasy.reactive.RestResponse.StatusCode.NO_CONTENT;
 @Produces("application/json")
 @Consumes("application/json")
 public class BasketResource {
+    @Inject
+    BasketRepository basketRepository;
+    @Inject
+    FruitRepository fruitRepository;
+
     @GET
     public Uni<List<Basket>> get() {
-        return Basket.listAll();
+        return basketRepository.findAll().list();
     }
 
     @GET
     @Path("{id}")
     public Uni<Basket> getById(@PathParam("id") Long id) {
-        return Basket.findById(id);
+        return basketRepository.findById(id);
     }
 
     @POST
-    public Uni<Response> create(@RequestBody List<Fruit> fruits) {
-        for (Fruit fruit : fruits) {
-            if (fruit == null || fruit.id != null) {
-                throw new WebApplicationException("Id was invalidly set on request.", 422);
-            }
-            Panache.withTransaction(fruit::persist);
+    @Transactional
+    public Uni<Response> create(@RequestBody Basket basket) {
+        for (Fruit fruit : basket.getFruits()) {
+            fruitRepository.persist(fruit);
         }
-        Basket basket = new Basket();
-        basket.setFruits(fruits);
-        return Panache.withTransaction(basket::persist)
+        return basketRepository.persist(basket)
                 .replaceWith(Response.ok(basket).status(CREATED)::build);
     }
 
@@ -57,13 +63,11 @@ public class BasketResource {
     @Path("{id}")
     public Uni<Response> update(@PathParam("id") Long id, @RequestBody Basket basket) {
         if (basket == null) {
-            throw new WebApplicationException("Fruit name was not set on request.", 422);
+            throw new WebApplicationException("Basket was not set on request.", UNPROCESSABLE_ENTITY_CODE);
         }
 
-        return Panache
-                .withTransaction(() -> Basket.<Basket>findById(id)
-                        .onItem().ifNotNull().invoke(entity -> entity.setFruits(basket.getFruits()))
-                )
+        return basketRepository.findById(id)
+                .onItem().ifNotNull().invoke(entity -> entity.setFruits(basket.getFruits()))
                 .onItem().ifNotNull().transform(entity -> Response.ok(entity).build())
                 .onItem().ifNull().continueWith(Response.ok().status(NOT_FOUND)::build);
     }
