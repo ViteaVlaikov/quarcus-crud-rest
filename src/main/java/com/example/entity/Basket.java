@@ -19,10 +19,11 @@ import java.util.List;
 @Getter
 @Setter
 public class Basket extends PanacheEntityBase {
-    private String name;
-    @OneToMany(mappedBy = "basket", fetch = FetchType.EAGER)
-    private List<Fruit> fruits;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    private String name;
+    @OneToMany(mappedBy = "basket", fetch = FetchType.EAGER)
+    private List<Fruit> fruits;
+
 }
