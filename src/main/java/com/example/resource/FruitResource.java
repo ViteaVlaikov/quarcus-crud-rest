@@ -3,7 +3,6 @@ package com.example.resource;
 import com.example.entity.Fruit;
 import com.example.repository.FruitRepository;
 import io.smallrye.mutiny.Uni;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -46,8 +45,8 @@ public class FruitResource {
 
     @POST
     @Transactional
-    public Uni<Response> create(@RequestBody Fruit fruit) {
-        if (fruit == null || fruit.id != null) {
+    public Uni<Response> create(Fruit fruit) {
+        if (fruit == null || fruit.getId() != null) {
             throw new WebApplicationException("Id was invalidly set on request.", UNPROCESSABLE_ENTITY_CODE);
         }
 
@@ -58,7 +57,7 @@ public class FruitResource {
     @PUT
     @Path("{id}")
     @Transactional
-    public Uni<Response> update(@PathParam("id") Long id, @RequestBody Fruit fruit) {
+    public Uni<Response> update(@PathParam("id") Long id, Fruit fruit) {
         if (fruit == null || fruit.getName() == null) {
             throw new WebApplicationException("Fruit name was not set on request.", UNPROCESSABLE_ENTITY_CODE);
         }

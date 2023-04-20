@@ -1,12 +1,10 @@
 package com.example.resource;
 
 import com.example.entity.Basket;
-import com.example.entity.Fruit;
 import com.example.repository.BasketRepository;
 import com.example.repository.FruitRepository;
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.smallrye.mutiny.Uni;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -51,17 +49,14 @@ public class BasketResource {
 
     @POST
     @Transactional
-    public Uni<Response> create(@RequestBody Basket basket) {
-        for (Fruit fruit : basket.getFruits()) {
-            fruitRepository.persist(fruit);
-        }
+    public Uni<Response> create(Basket basket) {
         return basketRepository.persist(basket)
                 .replaceWith(Response.ok(basket).status(CREATED)::build);
     }
 
     @PUT
     @Path("{id}")
-    public Uni<Response> update(@PathParam("id") Long id, @RequestBody Basket basket) {
+    public Uni<Response> update(@PathParam("id") Long id, Basket basket) {
         if (basket == null) {
             throw new WebApplicationException("Basket was not set on request.", UNPROCESSABLE_ENTITY_CODE);
         }
