@@ -59,6 +59,7 @@ public class FruitResource {
         }
         Fruit fruit = fruitMapper.toEntity(fruitDTO);
         return fruitRepository.persist(fruit)
+                .flatMap(fruit1 -> fruitRepository.flush().replaceWith(fruit1))
                 .replaceWith(Response.ok(fruit).status(CREATED)::build);
     }
 

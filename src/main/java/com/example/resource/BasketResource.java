@@ -3,8 +3,10 @@ package com.example.resource;
 import com.example.DTO.BasketDTO;
 import com.example.DTO.FruitDTO;
 import com.example.entity.Basket;
+import com.example.entity.Fruit;
 import com.example.mapper.BasketMapper;
 import com.example.repository.BasketRepository;
+import com.example.repository.FruitRepository;
 import io.quarkus.hibernate.reactive.panache.Panache;
 import io.smallrye.mutiny.Uni;
 
@@ -19,8 +21,10 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import java.net.URI;
 import java.util.List;
 
 import static com.example.codes.ErrorCode.UNPROCESSABLE_ENTITY_CODE;
@@ -36,11 +40,13 @@ public class BasketResource {
     @Inject
     BasketRepository basketRepository;
     @Inject
+    FruitRepository fruitRepository;
+    @Inject
     BasketMapper basketMapper;
 
 
     @GET
-    public Uni<List<BasketDTO>> get() {
+    public Uni<List<BasketDTO>> getAll() {
         return basketRepository.findAll().list()
                 .map(baskets -> baskets.stream()
                         .map(basketMapper::toDTO)
@@ -55,8 +61,8 @@ public class BasketResource {
     }
 
     @GET
-    @Path("/by_fruit_name/{fruit_name}")
-    public Uni<List<BasketDTO>> getAllByFruitName(@PathParam("fruit_name") String fruitName){
+    @Path("/by_fruit_name")
+    public Uni<List<BasketDTO>> getAllByFruitName(@QueryParam("fruit_name") String fruitName){
         return basketRepository.findAll().list()
                 .map(baskets -> baskets.stream()
                         .map(basketMapper::toDTO)
@@ -73,13 +79,21 @@ public class BasketResource {
 
     @POST
     @Transactional
-    public Uni<Response> create(BasketDTO basketDTO) {
+    public Response create(BasketDTO basketDTO) {
         if (basketDTO.getId() != null) {
             throw new WebApplicationException("Invalid data in request.", UNPROCESSABLE_ENTITY_CODE);
         }
         Basket basket = basketMapper.toEntity(basketDTO);
-        return basketRepository.persist(basket)
-                .replaceWith(Response.ok(basket).status(CREATED)::build);
+//        return basketRepository.persist(basket)
+//                .flatMap(basket1 -> basketRepository.flush().replaceWith(basket1))
+//                .replaceWith(Response.ok(basket).status(CREATED)::build);
+        basketRepository.persist(basket);
+        basketRepository.flush();
+        if(basketRepository.isPersistent(basket)){
+            return Response.created(URI.create("/baskets/"+basket.getId())).build();
+        }else {
+            return Response.status(NOT_FOUND).build();
+        }
     }
 
     @PUT

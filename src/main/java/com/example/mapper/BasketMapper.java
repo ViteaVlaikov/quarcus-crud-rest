@@ -19,8 +19,8 @@ public class BasketMapper {
     }
     public Basket toEntity(BasketDTO basketDTO){
         Basket basket = new Basket();
-        basket.setId(basket.getId());
-        basket.setName(basket.getName());
+        basket.setId(basketDTO.getId());
+        basket.setName(basketDTO.getName());
         basket.setFruits(basketDTO.getFruitDTOS().stream().map(fruitMapper::toEntity).toList());
         return basket;
     }
